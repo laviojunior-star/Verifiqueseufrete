@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verifique seu frete — Conformidade ANTT</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f4f0;color:#1a1a18;min-height:100vh;padding:2rem 1rem}
+  .wrap{max-width:700px;margin:0 auto}
+  .hero{text-align:center;margin-bottom:2rem}
+  .hero-badge{display:inline-block;background:#E6F1FB;color:#0C447C;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:14px;letter-spacing:.04em}
+  .hero h1{font-size:26px;font-weight:600;color:#1a1a18;margin-bottom:8px}
+  .hero p{font-size:14px;color:#5F5E5A;max-width:440px;margin:0 auto}
+  .card{background:#fff;border:1px solid #e0dfd8;border-radius:14px;padding:1.4rem;margin-bottom:12px}
+  .section-label{font-size:10px;font-weight:700;color:#888780;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:12px;color:#5F5E5A;font-weight:500}
+  .field input,.field select{height:38px;padding:0 11px;border:1px solid #d3d1c7;border-radius:8px;background:#fff;color:#1a1a18;font-size:13px;font-family:inherit;transition:border-color .15s}
+  .field input:focus,.field select:focus{outline:none;border-color:#378ADD;box-shadow:0 0 0 3px rgba(55,138,221,.1)}
+  .autocomplete-wrap{position:relative}
+  .dropdown{position:absolute;top:calc(100% + 3px);left:0;right:0;background:#fff;border:1px solid #d3d1c7;border-radius:8px;z-index:200;max-height:200px;overflow-y:auto;display:none;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+  .dropdown.open{display:block}
+  .dd-item{padding:8px 11px;font-size:13px;cursor:pointer;color:#1a1a18;display:flex;align-items:center;justify-content:space-between}
+  .dd-item:hover{background:#f5f4f0}
+  .dd-item .uf-badge{font-size:10px;font-weight:700;color:#888780;background:#f5f4f0;padding:2px 6px;border-radius:4px}
+  .dist-row{display:flex;align-items:center;gap:7px;margin-top:10px;font-size:12px;color:#5F5E5A}
+  .dist-dot{width:7px;height:7px;border-radius:50%;background:#d3d1c7;flex-shrink:0}
+  .dist-dot.ok{background:#639922}
+  .dist-dot.loading{background:#EF9F27;animation:pulse .8s infinite alternate}
+  @keyframes pulse{to{opacity:.3}}
+  .btn-calc{width:100%;height:48px;background:#185FA5;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .15s}
+  .btn-calc:hover{background:#0C447C}
+  .btn-calc svg{width:18px;height:18px}
+  .result-area{display:none;margin-top:4px}
+  .verdict{border-radius:12px;padding:1.2rem 1.4rem;display:flex;align-items:flex-start;gap:14px;margin-bottom:12px}
+  .verdict.ok{background:#EAF3DE;border:1px solid #C0DD97}
+  .verdict.nok{background:#FCEBEB;border:1px solid #F7C1C1}
+  .verdict.warn{background:#FAEEDA;border:1px solid #FAC775}
+  .v-icon{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0}
+  .verdict.ok .v-icon{background:#639922;color:#fff}
+  .verdict.nok .v-icon{background:#A32D2D;color:#fff}
+  .verdict.warn .v-icon{background:#854F0B;color:#fff}
+  .v-title{font-size:17px;font-weight:600;line-height:1.2}
+  .verdict.ok .v-title{color:#27500A}
+  .verdict.nok .v-title{color:#791F1F}
+  .verdict.warn .v-title{color:#633806}
+  .v-sub{font-size:13px;margin-top:4px;line-height:1.5}
+  .verdict.ok .v-sub{color:#3B6D11}
+  .verdict.nok .v-sub{color:#A32D2D}
+  .verdict.warn .v-sub{color:#854F0B}
+  .metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
+  .metric{background:#f5f4f0;border-radius:10px;padding:.9rem 1rem}
+  .mlabel{font-size:11px;color:#888780;margin-bottom:5px;font-weight:500}
+  .mval{font-size:17px;font-weight:600;color:#1a1a18}
+  .msub{font-size:11px;color:#888780;margin-top:2px}
+  .breakdown{background:#fff;border:1px solid #e0dfd8;border-radius:12px;padding:1.1rem 1.3rem}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td{padding:7px 0;vertical-align:top}
+  td:last-child{text-align:right;font-weight:500;white-space:nowrap}
+  tr+tr td{border-top:1px solid #f0efe8}
+  .row-hl td{color:#185FA5;font-weight:600}
+  .hint{font-size:11px;color:#888780;margin-top:3px}
+  .footer-note{font-size:11px;color:#888780;text-align:center;margin-top:10px;line-height:1.5}
+  @media(max-width:520px){.row2,.row3{grid-template-columns:1fr 1fr}.metrics{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="hero-badge">PORTARIA SUROC Nº 3 — 13/03/2026</div>
+    <h1>Verifique seu frete</h1>
+    <p>Informe os dados do frete cotado e descubra se o valor está dentro do piso mínimo estabelecido pela ANTT</p>
+  </div>
+
+  <!-- Rota -->
+  <div class="card">
+    <div class="section-label">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888780" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v13M9 18h6"/></svg>
+      Rota
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Origem</label>
+        <div class="autocomplete-wrap">
+          <input type="text" id="origem-input" placeholder="Cidade de origem..." autocomplete="off">
+          <div class="dropdown" id="origem-dd"></div>
+        </div>
+        <input type="hidden" id="origem-lat">
+        <input type="hidden" id="origem-lng">
+        <input type="hidden" id="origem-uf">
+      </div>
+      <div class="field">
+        <label>Destino</label>
+        <div class="autocomplete-wrap">
+          <input type="text" id="destino-input" placeholder="Cidade de destino..." autocomplete="off">
+          <div class="dropdown" id="destino-dd"></div>
+        </div>
+        <input type="hidden" id="destino-lat">
+        <input type="hidden" id="destino-lng">
+        <input type="hidden" id="destino-uf">
+      </div>
+    </div>
+    <div class="dist-row">
+      <div class="dist-dot" id="dist-dot"></div>
+      <span id="dist-label">Selecione origem e destino para calcular a distância via OSRM</span>
+    </div>
+  </div>
+
+  <!-- Operação: tipo e eixos -->
+  <div class="card">
+    <div class="section-label">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888780" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg>
+      Veículo e carga
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Tipo de carga</label>
+        <select id="tipo-carga">
+          <option value="1">Granel sólido</option>
+          <option value="2">Granel líquido</option>
+          <option value="3">Frigorificada / Aquecida</option>
+          <option value="4">Conteinerizada</option>
+          <option value="5" selected>Carga geral</option>
+          <option value="6">Neogranel</option>
+          <option value="7">Perigosa (granel sólido)</option>
+          <option value="8">Perigosa (granel líquido)</option>
+          <option value="9">Perigosa (frig./aquecida)</option>
+          <option value="10">Perigosa (conteinerizada)</option>
+          <option value="11">Perigosa (carga geral)</option>
+          <option value="12">Granel pressurizado</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Eixos carregados</label>
+        <select id="eixos">
+          <option value="2">2 eixos</option>
+          <option value="3">3 eixos</option>
+          <option value="4">4 eixos</option>
+          <option value="5" selected>5 eixos</option>
+          <option value="6">6 eixos</option>
+          <option value="7">7 eixos</option>
+          <option value="9">9 eixos</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Valores: NF, seguro, pedágio, all in, ICMS -->
+  <div class="card">
+    <div class="section-label">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888780" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M9 10h4.5a1.5 1.5 0 0 1 0 3H9m0 3h5"/></svg>
+      Valores
+    </div>
+
+    <!-- linha 1: NF + seguro + pedágio -->
+    <div class="row3" style="margin-bottom:12px">
+      <div class="field">
+        <label>Valor da NF (R$)</label>
+        <input type="number" id="seguro-nf" placeholder="Ex: 80.000,00" min="0" step="0.01" oninput="calcularSeguroPreview()">
+      </div>
+      <div class="field">
+        <label>Seguro (% sobre NF)</label>
+        <input type="number" id="seguro-valor" placeholder="Ex: 0.30" min="0" step="0.01" oninput="calcularSeguroPreview()">
+        <div class="hint" id="seguro-preview">Preencha NF e % do seguro</div>
+      </div>
+      <div class="field">
+        <label>Pedágio (R$)</label>
+        <input type="number" id="pedagio" placeholder="0,00" min="0" value="0" step="0.01">
+      </div>
+    </div>
+
+    <!-- linha 2: all in + ICMS -->
+    <div class="row2">
+      <div class="field">
+        <label>Valor all in informado (R$)</label>
+        <input type="number" id="valor-allin" placeholder="Ex: 9.000,00" min="0" step="0.01">
+      </div>
+      <div class="field">
+        <label>Alíquota ICMS (%)</label>
+        <div style="display:flex;gap:0">
+          <div id="icms-auto-badge" style="height:38px;border-radius:8px 0 0 8px;border:1px solid #d3d1c7;border-right:none;padding:0 12px;background:#E6F1FB;display:flex;align-items:center;white-space:nowrap;font-size:13px;font-weight:700;color:#185FA5;min-width:56px;justify-content:center">—</div>
+          <input type="number" id="aliq-icms" placeholder="0" min="0" max="100" step="0.5" oninput="onIcmsManual()" style="height:38px;border-radius:0 8px 8px 0;border:1px solid #d3d1c7;padding:0 10px;font-size:13px;width:100%;font-family:inherit;background:#fff;color:#1a1a18">
+        </div>
+        <div class="hint" id="icms-hint">Preenchido automaticamente pela rota — ajuste se necessário</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-calc" onclick="calcular()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Verificar conformidade ANTT
+  </button>
+
+  <div class="result-area" id="result-area">
+    <div class="verdict" id="verdict">
+      <div class="v-icon" id="v-icon"></div>
+      <div>
+        <div class="v-title" id="v-title"></div>
+        <div class="v-sub" id="v-sub"></div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="mlabel">Frete all in</div>
+        <div class="mval" id="m-allin"></div>
+        <div class="msub">Cotado</div>
+      </div>
+      <div class="metric">
+        <div class="mlabel">ICMS deduzido</div>
+        <div class="mval" id="m-icms"></div>
+        <div class="msub" id="m-icms-pct"></div>
+      </div>
+      <div class="metric">
+        <div class="mlabel">Pedágio</div>
+        <div class="mval" id="m-ped"></div>
+        <div class="msub">Deduzido</div>
+      </div>
+      <div class="metric">
+        <div class="mlabel">Seguro</div>
+        <div class="mval" id="m-seg"></div>
+        <div class="msub">Deduzido</div>
+      </div>
+      <div class="metric">
+        <div class="mlabel">Frete líquido</div>
+        <div class="mval" id="m-liq"></div>
+        <div class="msub">Base comparação</div>
+      </div>
+    </div>
+
+    <div class="breakdown">
+      <table>
+        <tr>
+          <td style="color:#5F5E5A">Distância da rota (OSRM)</td>
+          <td id="b-dist"></td>
+        </tr>
+        <tr>
+          <td style="color:#5F5E5A">Coeficiente ANTT (CCD)</td>
+          <td id="b-ccd-coef"></td>
+        </tr>
+        <tr>
+          <td style="color:#5F5E5A">Piso deslocamento (CCD × km)</td>
+          <td id="b-ccd"></td>
+        </tr>
+        <tr>
+          <td style="color:#5F5E5A">Piso carga/descarga (CC)</td>
+          <td id="b-cc"></td>
+        </tr>
+        <tr class="row-hl">
+          <td>Piso mínimo total ANTT</td>
+          <td id="b-piso"></td>
+        </tr>
+        <tr>
+          <td style="color:#5F5E5A">Frete líquido informado</td>
+          <td id="b-liq"></td>
+        </tr>
+        <tr>
+          <td style="color:#5F5E5A">  — ICMS deduzido</td>
+          <td id="b-icms-val"></td>
+        </tr>
+        <tr>
+          <td style="color:#5F5E5A">  — Pedágio deduzido</td>
+          <td id="b-ped-val"></td>
+        </tr>
+        <tr>
+          <td style="color:#5F5E5A">  — Seguro (<span id="b-seg-label">ad valorem</span>)</td>
+          <td id="b-seg-val"></td>
+        </tr>
+        <tr>
+          <td style="color:#5F5E5A">Diferença (líquido − piso)</td>
+          <td id="b-diff"></td>
+        </tr>
+      </table>
+    </div>
+
+    <p class="footer-note">
+      Tabela A — ANTT Portaria SUROC Nº 3, 13/03/2026 · Diesel referência R$ 6,89/L<br>
+      Este resultado é informativo. Para fins legais, consulte a legislação vigente.
+    </p>
+  </div>
+</div>
+
+<script>
+const TABELA_A = {
+  1:{ccd:{2:3.9173,3:5.0127,4:5.6728,5:6.5381,6:7.2108,7:7.8555,9:8.9995},cc:{2:444.84,3:533.36,4:576.59,5:642.10,6:656.76,7:792.30,9:877.83}},
+  2:{ccd:{2:3.9888,3:5.1050,4:5.8219,5:6.7002,6:7.3780,7:7.9892,9:9.1532},cc:{2:455.84,3:550.10,4:600.27,5:669.38,6:685.45,7:811.76,9:902.80}},
+  3:{ccd:{2:4.5986,3:5.8762,4:6.7046,5:7.6837,6:8.4688,7:9.3596,9:10.6295},cc:{2:502.29,3:601.96,4:663.16,5:732.07,6:745.94,7:949.16,9:1030.58}},
+  4:{ccd:{3:4.9864,4:5.6031,5:6.4765,6:7.1476,7:7.8532,9:8.9193},cc:{3:526.13,4:557.42,5:625.16,6:639.38,7:791.67,9:855.76}},
+  5:{ccd:{2:3.8866,3:4.9762,4:5.6443,5:6.5126,6:7.1824,7:7.8952,9:8.9799},cc:{2:436.39,3:523.33,4:568.72,5:635.08,6:648.95,7:803.22,9:872.44}},
+  6:{ccd:{2:3.5108,3:4.9748,4:5.6706,5:6.5126,6:7.1824,7:7.8952,9:8.9799},cc:{2:436.39,3:522.93,4:575.96,5:635.08,6:648.95,7:803.22,9:872.44}},
+  7:{ccd:{2:4.6610,3:5.7660,4:6.4616,5:7.3269,6:7.9996,7:8.6619,9:9.8137},cc:{2:587.98,3:679.12,4:727.28,5:792.80,6:807.45,7:947.84,9:1035.49}},
+  8:{ccd:{2:4.7446,3:5.8704,4:6.5913,5:7.4697,6:8.1475,7:8.7763,9:9.9480},cc:{2:610.96,3:707.85,4:762.95,5:832.06,6:848.13,7:979.29,9:1072.44}},
+  9:{ccd:{2:5.1859,3:6.4760,4:7.3202,5:8.2992,6:9.0843,7:9.9980,9:11.2780},cc:{2:609.31,3:712.41,4:780.02,5:848.93,6:862.80,7:1072.32,9:1156.49}},
+  10:{ccd:{3:5.3576,4:6.0099,5:6.8832,6:7.5543,7:8.2776,9:9.3513},cc:{3:623.38,4:659.60,5:727.35,6:741.56,7:898.70,9:964.90}},
+  11:{ccd:{2:4.2483,3:5.3474,4:6.0510,5:6.9193,6:7.5891,7:8.3196,9:9.4120},cc:{2:531.01,3:620.58,4:670.91,5:737.27,6:751.14,7:910.26,9:981.58}},
+  12:{ccd:{5:6.8646,6:7.5789,9:9.5030},cc:{5:731.90,6:757.99,9:1016.29}}
+};
+
+let cidades=[], distanciaKm=null;
+
+async function carregarCidades(){
+  try{
+    const r=await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome');
+    cidades=await r.json();
+  }catch(e){console.error('IBGE:',e)}
+}
+
+async function buscarCoords(id){
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${id}&format=json&limit=1&countrycodes=br`);
+    const d=await r.json();
+    if(d.length) return{lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)};
+  }catch(e){}
+  return null;
+}
+
+async function geocodeMunicipio(nome, uf){
+  try{
+    const q=encodeURIComponent(`${nome}, ${uf}, Brasil`);
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=br`);
+    const d=await r.json();
+    if(d.length) return{lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)};
+  }catch(e){}
+  return null;
+}
+
+async function buscarDistancia(oLat,oLng,dLat,dLng){
+  try{
+    const url=`https://router.project-osrm.org/route/v1/driving/${oLng},${oLat};${dLng},${dLat}?overview=false`;
+    const r=await fetch(url);
+    const d=await r.json();
+    if(d.routes&&d.routes.length) return d.routes[0].distance/1000;
+  }catch(e){}
+  return null;
+}
+
+function setupAC(inputId,ddId,latId,lngId,ufId){
+  const input=document.getElementById(inputId);
+  const dd=document.getElementById(ddId);
+  let timer, selectedData=null;
+
+  input.addEventListener('input',()=>{
+    clearTimeout(timer);
+    document.getElementById(latId).value='';
+    document.getElementById(lngId).value='';
+    document.getElementById(ufId).value='';
+    distanciaKm=null;
+    setDist('idle','Selecione origem e destino para calcular a distância');
+    selectedData=null;
+    const q=input.value.trim().toLowerCase();
+    if(q.length<2){dd.classList.remove('open');return;}
+    timer=setTimeout(()=>{
+      const matches=cidades.filter(c=>
+        c.nome.toLowerCase().startsWith(q)||c.nome.toLowerCase().includes(' '+q)
+      ).slice(0,12);
+      if(!matches.length){dd.innerHTML='<div class="dd-item" style="color:#888780;cursor:default">Nenhuma cidade encontrada</div>';dd.classList.add('open');return;}
+      dd.innerHTML=matches.map(c=>{
+        const uf=c.microrregiao.mesorregiao.UF.sigla;
+        return`<div class="dd-item" data-id="${c.id}" data-nome="${c.nome}" data-uf="${uf}">${c.nome} <span class="uf-badge">${uf}</span></div>`;
+      }).join('');
+      dd.classList.add('open');
+    },220);
+  });
+
+  dd.addEventListener('click',async e=>{
+    const item=e.target.closest('.dd-item');
+    if(!item||!item.dataset.id)return;
+    const nome=item.dataset.nome, uf=item.dataset.uf;
+    input.value=`${nome} — ${uf}`;
+    document.getElementById(ufId).value=uf;
+    dd.classList.remove('open');
+    setDist('loading','Buscando coordenadas...');
+    const coords=await geocodeMunicipio(nome,uf);
+    if(coords){
+      document.getElementById(latId).value=coords.lat;
+      document.getElementById(lngId).value=coords.lng;
+    }
+    sugerirIcms();
+    await tentarDistancia();
+  });
+
+  document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-wrap'))dd.classList.remove('open');});
+}
+
+function setDist(status,txt){
+  const dot=document.getElementById('dist-dot');
+  const lbl=document.getElementById('dist-label');
+  dot.className='dist-dot'+(status==='ok'?' ok':status==='loading'?' loading':'');
+  lbl.textContent=txt;
+}
+
+async function tentarDistancia(){
+  const oLat=document.getElementById('origem-lat').value;
+  const oLng=document.getElementById('origem-lng').value;
+  const dLat=document.getElementById('destino-lat').value;
+  const dLng=document.getElementById('destino-lng').value;
+  if(!oLat||!dLat){setDist('idle','Selecione origem e destino para calcular a distância');return;}
+  setDist('loading','Calculando rota via OSRM...');
+  const km=await buscarDistancia(oLat,oLng,dLat,dLng);
+  if(km){
+    distanciaKm=km;
+    setDist('ok',`Distância por estrada: ${km.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})} km`);
+  } else {
+    setDist('idle','Não foi possível calcular. Verifique as cidades selecionadas.');
+  }
+}
+
+function toggleSeguroModo(){}
+
+function calcularSeguroPreview(){
+  const pct=parseFloat(document.getElementById('seguro-valor').value)||0;
+  const nf=parseFloat(document.getElementById('seguro-nf').value)||0;
+  const preview=document.getElementById('seguro-preview');
+  if(pct>0&&nf>0){
+    const val=(pct/100)*nf;
+    preview.textContent=`= R$ ${val.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} deduzidos`;
+  } else if(nf>0&&!pct){
+    preview.textContent='Informe o percentual do seguro';
+  } else if(pct>0&&!nf){
+    preview.textContent='Informe o valor da NF';
+  } else {
+    preview.textContent='Informe o valor da NF e o percentual';
+  }
+}
+
+function getSeguroValor(){
+  const pct=parseFloat(document.getElementById('seguro-valor').value)||0;
+  const nf=parseFloat(document.getElementById('seguro-nf').value)||0;
+  return(pct/100)*nf;
+}
+
+function setIcms(pct, descricao){
+  document.getElementById('aliq-icms').value=pct;
+  document.getElementById('icms-auto-badge').textContent=pct+'%';
+  document.getElementById('icms-hint').textContent=descricao;
+}
+
+function onIcmsManual(){
+  const val=document.getElementById('aliq-icms').value;
+  document.getElementById('icms-auto-badge').textContent=val?val+'%':'—';
+  document.getElementById('icms-hint').textContent='Alíquota ajustada manualmente';
+}
+
+function sugerirIcms(){
+  const ouf=document.getElementById('origem-uf').value;
+  const duf=document.getElementById('destino-uf').value;
+  if(!ouf||!duf)return;
+  if(ouf===duf){
+    const pct=ouf==='SP'||ouf==='MG'?18:17;
+    setIcms(pct,`Operação interna ${ouf}`);
+    return;
+  }
+  const norte=['AM','PA','AC','AP','RO','RR','TO'];
+  const nordeste=['BA','SE','AL','PE','PB','RN','CE','PI','MA'];
+  const co=['MT','MS','GO','DF'];
+  const sulse=['RS','SC','PR','SP','RJ','MG','ES'];
+  const favorecido=[...norte,...nordeste,...co];
+  if((favorecido.includes(duf)&&sulse.includes(ouf))||(favorecido.includes(ouf)&&sulse.includes(duf))){
+    setIcms(7,`Interestadual ${ouf} → ${duf} (região favorecida)`);
+  } else {
+    setIcms(12,`Interestadual ${ouf} → ${duf}`);
+  }
+}
+
+function fmt(v){return'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+
+function calcular(){
+  const allin=parseFloat(document.getElementById('valor-allin').value);
+  const icmsPct=parseFloat(document.getElementById('aliq-icms').value);
+  const pedagio=parseFloat(document.getElementById('pedagio').value)||0;
+  const seguro=getSeguroValor();
+  const tipo=parseInt(document.getElementById('tipo-carga').value);
+  const eixos=parseInt(document.getElementById('eixos').value);
+
+  if(!allin||allin<=0){alert('Informe o valor all in do frete.');return;}
+  if(!distanciaKm){alert('Selecione origem e destino para calcular a distância primeiro.');return;}
+
+  const tabTipo=TABELA_A[tipo];
+  const ccd=tabTipo&&tabTipo.ccd[eixos];
+  const cc=tabTipo&&tabTipo.cc[eixos];
+  if(ccd===undefined||cc===undefined){
+    alert('Esta combinação de tipo de carga e eixos não está disponível na Tabela A da ANTT.\nConsulte a tabela para combinações válidas.');
+    return;
+  }
+
+  const icmsValor=allin*(icmsPct/100);
+  const freteBase=allin-icmsValor;
+  const freteLiquido=freteBase-pedagio-seguro;
+  const pisoCCD=ccd*distanciaKm;
+  const pisoTotal=pisoCCD+cc;
+  const diff=freteLiquido-pisoTotal;
+  const pct=(diff/pisoTotal)*100;
+
+  document.getElementById('m-allin').textContent=fmt(allin);
+  document.getElementById('m-icms').textContent=fmt(icmsValor);
+  document.getElementById('m-icms-pct').textContent=`${icmsPct}% deduzido`;
+  document.getElementById('m-ped').textContent=fmt(pedagio);
+  document.getElementById('m-seg').textContent=fmt(seguro);
+  document.getElementById('m-liq').textContent=fmt(freteLiquido);
+  document.getElementById('b-dist').textContent=distanciaKm.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' km';
+  document.getElementById('b-ccd-coef').textContent=`R$ ${ccd.toFixed(4)}/km`;
+  document.getElementById('b-ccd').textContent=`${fmt(pisoCCD)}`;
+  document.getElementById('b-cc').textContent=fmt(cc);
+  document.getElementById('b-piso').textContent=fmt(pisoTotal);
+  document.getElementById('b-liq').textContent=fmt(allin)+' (all in)';
+  document.getElementById('b-icms-val').textContent='− '+fmt(icmsValor);
+  document.getElementById('b-ped-val').textContent='− '+fmt(pedagio);
+  const segPct=parseFloat(document.getElementById('seguro-valor').value)||0;
+  const segNf=parseFloat(document.getElementById('seguro-nf').value)||0;
+  document.getElementById('b-seg-label').textContent=segPct&&segNf?`${segPct}% s/ NF de ${fmt(segNf)}`:'ad valorem';
+  document.getElementById('b-seg-val').textContent='− '+fmt(seguro);
+  const diffStr=(diff>=0?'+':'')+fmt(diff)+` (${pct>=0?'+':''}${pct.toFixed(1)}%)`;
+  document.getElementById('b-diff').textContent=diffStr;
+  document.getElementById('b-diff').style.color=pct>=0?'#27500A':'#791F1F';
+
+  const verdict=document.getElementById('verdict');
+  const vIcon=document.getElementById('v-icon');
+  const vTitle=document.getElementById('v-title');
+  const vSub=document.getElementById('v-sub');
+  verdict.className='verdict';
+
+  if(pct>=5){
+    verdict.classList.add('ok');
+    vIcon.textContent='✓';
+    vTitle.textContent=`Frete dentro da ANTT (+${pct.toFixed(1)}%)`;
+    vSub.textContent=`O frete líquido está ${fmt(diff)} acima do piso mínimo legal. Operação em conformidade.`;
+  } else if(pct>=0){
+    verdict.classList.add('warn');
+    vIcon.textContent='!';
+    vTitle.textContent=`Frete no limite do piso (+${pct.toFixed(1)}%)`;
+    vSub.textContent=`Margem de apenas ${pct.toFixed(1)}% acima do piso. Recomenda-se verificar todos os componentes do frete.`;
+  } else {
+    verdict.classList.add('nok');
+    vIcon.textContent='✕';
+    vTitle.textContent=`Frete ABAIXO do piso ANTT (${pct.toFixed(1)}%)`;
+    vSub.textContent=`O frete líquido está ${fmt(Math.abs(diff))} abaixo do mínimo legal. O transportador pode estar em infração à Lei 13.703/2018.`;
+  }
+
+  const ra=document.getElementById('result-area');
+  ra.style.display='block';
+  setTimeout(()=>ra.scrollIntoView({behavior:'smooth',block:'start'}),100);
+}
+
+carregarCidades();
+setupAC('origem-input','origem-dd','origem-lat','origem-lng','origem-uf');
+setupAC('destino-input','destino-dd','destino-lat','destino-lng','destino-uf');
+</script>
+</body>
+</html>
