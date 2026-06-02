@@ -516,30 +516,15 @@ async function carregarCidades(){
   try{
     const r=await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome');
     const data=await r.json();
-    cidades=data.map(m=>({
-      id:m.id,
-      nome:m.nome,
-      uf:m.microrregiao.mesorregiao.UF.sigla,
-      lat:m.centroide?m.centroide.latitude:null,
-      lng:m.centroide?m.centroide.longitude:null
-    }));
+    cidades=data;
   }catch(e){console.error('IBGE erro',e)}
 }
 
 async function geocodeMunicipio(ibgeId, nome, uf){
-  // 1. Tenta pegar das cidades já carregadas
-  const cidade=cidades.find(c=>c.id==ibgeId);
-  if(cidade&&cidade.lat)return{lat:cidade.lat,lng:cidade.lng};
-  // 2. Busca individual na API IBGE
-  try{
-    const r=await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/municipios/${ibgeId}`);
-    const d=await r.json();
-    if(d.centroide)return{lat:d.centroide.latitude,lng:d.centroide.longitude};
-  }catch(e){}
-  // 3. Fallback Nominatim
+  // Nominatim com timeout de 8s
   try{
     const ctrl=new AbortController();
-    setTimeout(()=>ctrl.abort(),6000);
+    setTimeout(()=>ctrl.abort(),8000);
     const q=encodeURIComponent(`${nome}, ${uf}, Brasil`);
     const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=br`,{signal:ctrl.signal});
     const d=await r.json();
@@ -589,24 +574,14 @@ function setupAC(inputId,ddId,latId,lngId,ufId,prefix,onSelect){
     input.value=`${item.dataset.nome} — ${item.dataset.uf}`;
     document.getElementById(ufId).value=item.dataset.uf;
     dd.classList.remove('open');
-
-    // Tenta usar coordenadas já carregadas
-    const cidade=cidades.find(c=>c.id==item.dataset.id);
-    if(cidade&&cidade.lat){
-      document.getElementById(latId).value=cidade.lat;
-      document.getElementById(lngId).value=cidade.lng;
-      if(onSelect)onSelect();
-      await tentarDistancia(prefix);
-    } else {
-      setDistStatus(prefix,'loading','Buscando coordenadas...');
-      const coords=await geocodeMunicipio(item.dataset.id, item.dataset.nome, item.dataset.uf);
-      if(coords){
-        document.getElementById(latId).value=coords.lat;
-        document.getElementById(lngId).value=coords.lng;
-      }
-      if(onSelect)onSelect();
-      await tentarDistancia(prefix);
+    setDistStatus(prefix,'loading','Buscando coordenadas...');
+    const coords=await geocodeMunicipio(item.dataset.id, item.dataset.nome, item.dataset.uf);
+    if(coords){
+      document.getElementById(latId).value=coords.lat;
+      document.getElementById(lngId).value=coords.lng;
     }
+    if(onSelect)onSelect();
+    await tentarDistancia(prefix);
   });
   document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-wrap'))dd.classList.remove('open');});
 }
