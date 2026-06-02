@@ -626,9 +626,12 @@ function calcIcmsPct(ouf,duf){
 }
 
 function setIcms(prefix,pct,desc){
-  document.getElementById(prefix+'-icms').value=pct;
-  document.getElementById(prefix+'-icms-badge').textContent=pct+'%';
-  document.getElementById(prefix+'-icms-hint').textContent=desc;
+  const badge=document.getElementById(prefix+'-icms-badge');
+  const input=document.getElementById(prefix+'-icms');
+  const hint=document.getElementById(prefix+'-icms-hint');
+  if(badge)badge.textContent=pct+'%';
+  if(input)input.value=pct;
+  if(hint)hint.textContent=desc;
 }
 
 function sugerirIcms(prefix){
