@@ -545,10 +545,14 @@ function setupAC(inputId,ddId,latId,lngId,ufId,prefix,onSelect){
     document.getElementById(latId).value='';
     document.getElementById(lngId).value='';
     document.getElementById(ufId).value='';
-    const q=input.value.trim().toLowerCase();
+    const norm=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+    const q=norm(input.value);
     if(q.length<2){dd.classList.remove('open');return;}
     timer=setTimeout(()=>{
-      const m=cidades.filter(c=>c.nome.toLowerCase().startsWith(q)||c.nome.toLowerCase().includes(' '+q)).slice(0,12);
+      const m=cidades.filter(c=>{
+        const n=norm(c.nome);
+        return n.startsWith(q)||n.includes(' '+q)||n.includes(q);
+      }).slice(0,12);
       if(!m.length){dd.innerHTML='<div class="dd-item" style="color:#888780;cursor:default">Nenhuma cidade encontrada</div>';dd.classList.add('open');return;}
       dd.innerHTML=m.map(c=>{
         const uf=c.microrregiao.mesorregiao.UF.sigla;
