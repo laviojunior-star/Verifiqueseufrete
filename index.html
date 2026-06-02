@@ -520,25 +520,18 @@ async function carregarCidades(){
 }
 
 async function geocodeMunicipio(ibgeId, nome, uf){
-  // API IBGE v3 — retorna centroide diretamente
+  // API IBGE v1 — objeto do município já contém coordenadas do centroide
   try{
-    const r=await fetch(`https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${ibgeId}?formato=application/vnd.geo+json&resolucao=2`);
+    const r=await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/municipios/${ibgeId}`);
     const d=await r.json();
-    if(d.features&&d.features.length){
-      const geo=d.features[0].geometry;
-      const getRing=g=>g.type==='Polygon'?g.coordinates[0]:g.coordinates[0][0];
-      const pts=getRing(geo);
-      if(pts&&pts.length){
-        const lat=pts.reduce((s,p)=>s+p[1],0)/pts.length;
-        const lng=pts.reduce((s,p)=>s+p[0],0)/pts.length;
-        return{lat,lng};
-      }
+    if(d.centroide){
+      return{lat:d.centroide.latitude, lng:d.centroide.longitude};
     }
   }catch(e){}
-  // Fallback rápido: Nominatim com timeout de 5s
+  // Fallback: Nominatim com timeout
   try{
     const ctrl=new AbortController();
-    setTimeout(()=>ctrl.abort(),5000);
+    setTimeout(()=>ctrl.abort(),6000);
     const q=encodeURIComponent(`${nome}, ${uf}, Brasil`);
     const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=br`,{signal:ctrl.signal});
     const d=await r.json();
