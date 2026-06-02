@@ -106,6 +106,7 @@
   .row-hl td{color:#185FA5;font-weight:700}
   .row-sub td{color:#888780;font-size:12px}
   .footer-note{font-size:11px;color:#888780;text-align:center;margin-top:10px;line-height:1.6}
+  .disclaimer{font-size:11px;color:#854F0B;background:#FAEEDA;border:1px solid #FAC775;border-radius:8px;padding:10px 14px;margin-top:10px;line-height:1.6;text-align:center}
 
   /* retorno vazio toggle */
   .rv-wrap{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid #f0efe8}
@@ -310,10 +311,7 @@
         </table>
       </div>
       <p class="footer-note">Tabela A — ANTT Portaria SUROC Nº 3, 13/03/2026 · Diesel R$ 6,89/L<br>Resultado informativo. Para fins legais consulte a legislação vigente.</p>
-    </div>
-  </div>
-
-  <!-- ===================== ABA 2: FRETE ABERTO ===================== -->
+      <p class="disclaimer">⚠ A distância exibida é uma <strong>estimativa</strong> baseada em rota viária e deve ser confirmada pelo usuário antes de qualquer decisão comercial. As informações desta plataforma são de caráter informativo e não constituem assessoria jurídica ou comercial. Não nos responsabilizamos pelo uso das informações aqui geradas.</p>
   <div class="tab-panel" id="panel-aberto">
 
     <!-- Rota -->
@@ -456,6 +454,7 @@
         </table>
       </div>
       <p class="footer-note">Tabela A — ANTT Portaria SUROC Nº 3, 13/03/2026 · Diesel R$ 6,89/L<br>O frete peso/valor é comparado diretamente com o piso, sem deduções de ICMS e adicionais.<br>Resultado informativo. Para fins legais consulte a legislação vigente.</p>
+      <p class="disclaimer">⚠ A distância exibida é uma <strong>estimativa</strong> baseada em rota viária e deve ser confirmada pelo usuário antes de qualquer decisão comercial. As informações desta plataforma são de caráter informativo e não constituem assessoria jurídica ou comercial. Não nos responsabilizamos pelo uso das informações aqui geradas.</p>
     </div>
   </div>
 
@@ -516,10 +515,28 @@ async function carregarCidades(){
   }catch(e){console.error('IBGE erro',e)}
 }
 
-async function geocodeMunicipio(nome,uf){
+async function geocodeMunicipio(ibgeId, nome, uf){
+  // API IBGE v3 — retorna centroide diretamente
   try{
+    const r=await fetch(`https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${ibgeId}?formato=application/vnd.geo+json&resolucao=2`);
+    const d=await r.json();
+    if(d.features&&d.features.length){
+      const geo=d.features[0].geometry;
+      const getRing=g=>g.type==='Polygon'?g.coordinates[0]:g.coordinates[0][0];
+      const pts=getRing(geo);
+      if(pts&&pts.length){
+        const lat=pts.reduce((s,p)=>s+p[1],0)/pts.length;
+        const lng=pts.reduce((s,p)=>s+p[0],0)/pts.length;
+        return{lat,lng};
+      }
+    }
+  }catch(e){}
+  // Fallback rápido: Nominatim com timeout de 5s
+  try{
+    const ctrl=new AbortController();
+    setTimeout(()=>ctrl.abort(),5000);
     const q=encodeURIComponent(`${nome}, ${uf}, Brasil`);
-    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=br`);
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=br`,{signal:ctrl.signal});
     const d=await r.json();
     if(d.length)return{lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)};
   }catch(e){}
@@ -568,7 +585,7 @@ function setupAC(inputId,ddId,latId,lngId,ufId,prefix,onSelect){
     document.getElementById(ufId).value=item.dataset.uf;
     dd.classList.remove('open');
     setDistStatus(prefix,'loading','Buscando coordenadas...');
-    const coords=await geocodeMunicipio(item.dataset.nome,item.dataset.uf);
+    const coords=await geocodeMunicipio(item.dataset.id, item.dataset.nome, item.dataset.uf);
     if(coords){
       document.getElementById(latId).value=coords.lat;
       document.getElementById(lngId).value=coords.lng;
@@ -598,7 +615,7 @@ async function tentarDistancia(prefix){
   if(km){
     if(prefix==='ai')aiDist=km;
     else faDist=km;
-    setDistStatus(prefix,'ok',`Distância por estrada: ${km.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})} km`);
+    setDistStatus(prefix,'ok',`Distância estimada por estrada: ${km.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})} km — confirme antes de usar`);
   }else{
     setDistStatus(prefix,'idle','Não foi possível calcular a rota. Verifique as cidades.');
   }
