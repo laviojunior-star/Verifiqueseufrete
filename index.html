@@ -136,7 +136,7 @@
   <!-- ABAS -->
   <div class="tabs">
     <button class="tab active" onclick="mudarAba('allin',this)">Frete All In</button>
-    <button class="tab" onclick="mudarAba('aberto',this)">Frete Aberto (Frete++)</button>
+    <button class="tab" onclick="mudarAba('aberto',this)">Frete Aberto / Frete Valor</button>
   </div>
 
   <!-- ===================== ABA 1: FRETE ALL IN ===================== -->
@@ -202,7 +202,7 @@
         </div>
         <div class="field">
           <label>Eixos carregados</label>
-          <select id="ai-eixos">
+          <select id="ai-eixos" onchange="atualizarComp('ai')">
             <option value="2">2 eixos</option>
             <option value="3">3 eixos</option>
             <option value="4">4 eixos</option>
@@ -215,8 +215,21 @@
       </div>
       <div class="rv-wrap">
         <div class="rv-label">
+          Composição veicular
+          <span>Veículo automotor + implemento (caminhão + carreta/reboque)</span>
+        </div>
+        <div style="display:flex;align-items:center">
+          <span class="rv-badge visible" id="ai-comp-badge">Auto</span>
+          <label class="rv-switch">
+            <input type="checkbox" id="ai-composicao" checked onchange="aiCompManual()">
+            <span class="rv-slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="rv-wrap">
+        <div class="rv-label">
           Retorno vazio
-          <span id="ai-rv-desc">Não aplicável para o tipo de carga selecionado</span>
+          <span id="ai-rv-desc">Ative se o veículo retorna vazio após a entrega</span>
         </div>
         <div style="display:flex;align-items:center">
           <span class="rv-badge" id="ai-rv-badge">Auto</span>
@@ -363,7 +376,7 @@
         </div>
         <div class="field">
           <label>Eixos carregados</label>
-          <select id="fa-eixos">
+          <select id="fa-eixos" onchange="atualizarComp('fa')">
             <option value="2">2 eixos</option>
             <option value="3">3 eixos</option>
             <option value="4">4 eixos</option>
@@ -376,8 +389,21 @@
       </div>
       <div class="rv-wrap">
         <div class="rv-label">
+          Composição veicular
+          <span>Veículo automotor + implemento (caminhão + carreta/reboque)</span>
+        </div>
+        <div style="display:flex;align-items:center">
+          <span class="rv-badge visible" id="fa-comp-badge">Auto</span>
+          <label class="rv-switch">
+            <input type="checkbox" id="fa-composicao" checked onchange="faCompManual()">
+            <span class="rv-slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="rv-wrap">
+        <div class="rv-label">
           Retorno vazio
-          <span id="fa-rv-desc">Não aplicável para o tipo de carga selecionado</span>
+          <span id="fa-rv-desc">Ative se o veículo retorna vazio após a entrega</span>
         </div>
         <div style="display:flex;align-items:center">
           <span class="rv-badge" id="fa-rv-badge">Auto</span>
@@ -399,22 +425,6 @@
         <label>Valor do frete peso (R$)</label>
         <input type="number" id="fa-frete-peso" placeholder="Ex: 7.200,00" min="0" step="0.01">
         <div class="hint">Valor do frete pelo percurso, sem ICMS e sem adicionais</div>
-      </div>
-    </div>
-
-    <!-- Alíquota ICMS -->
-    <div class="card">
-      <div class="section-label">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888780" stroke-width="2.5" stroke-linecap="round"><path d="M9 14l6-6M9 9h.01M15 15h.01"/><circle cx="12" cy="12" r="10"/></svg>
-        Tributação
-      </div>
-      <div class="field">
-        <label>Alíquota ICMS (%)</label>
-        <div class="icms-wrap">
-          <div class="icms-badge" id="fa-icms-badge">—</div>
-          <input class="icms-input" type="number" id="fa-icms" placeholder="0" min="0" max="100" step="0.5" oninput="faIcmsManual()">
-        </div>
-        <div class="hint" id="fa-icms-hint">Preenchido automaticamente pela rota — ajuste se necessário</div>
       </div>
     </div>
 
@@ -495,6 +505,7 @@ function mudarAba(aba,btn){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('panel-'+aba).classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
 }
 
 /* ─── IBGE + GEOCODE + OSRM ─────────────────────── */
@@ -667,8 +678,24 @@ function faValorPreview(){
   }
 }
 
+/* ─── COMPOSIÇÃO VEICULAR ────────────────────────── */
+function atualizarComp(prefix){
+  const eixos=parseInt(document.getElementById(prefix+'-eixos').value);
+  const chk=document.getElementById(prefix+'-composicao');
+  const badge=document.getElementById(prefix+'-comp-badge');
+  // ≥ 5 eixos normalmente é composição veicular
+  chk.checked=eixos>=5;
+  badge.classList.toggle('visible', eixos>=5);
+}
+
+function aiCompManual(){
+  document.getElementById('ai-comp-badge').classList.remove('visible');
+}
+function faCompManual(){
+  document.getElementById('fa-comp-badge').classList.remove('visible');
+}
+
 /* ─── RETORNO VAZIO ──────────────────────────────── */
-// Tipos conteinerizada: 4 e 10
 const TIPOS_CONTAINER=[4,10];
 
 function atualizarRv(prefix){
@@ -678,32 +705,26 @@ function atualizarRv(prefix){
   const badge=document.getElementById(prefix+'-rv-badge');
   if(TIPOS_CONTAINER.includes(tipo)){
     chk.checked=true;
-    chk.disabled=false;
     badge.classList.add('visible');
     desc.textContent='Ativado automaticamente para carga conteinerizada';
   }else{
     chk.checked=false;
-    chk.disabled=false;
     badge.classList.remove('visible');
     desc.textContent='Ative se o veículo retorna vazio após a entrega';
   }
+  // também atualiza composição ao mudar tipo
+  atualizarComp(prefix);
 }
 
 function aiRvManual(){
-  const tipo=parseInt(document.getElementById('ai-tipo-carga').value);
-  const badge=document.getElementById('ai-rv-badge');
-  const desc=document.getElementById('ai-rv-desc');
+  document.getElementById('ai-rv-badge').classList.remove('visible');
   const chk=document.getElementById('ai-retorno-vazio');
-  badge.classList.remove('visible');
-  desc.textContent=chk.checked?'Retorno vazio ativado manualmente':'Retorno vazio desativado';
+  document.getElementById('ai-rv-desc').textContent=chk.checked?'Retorno vazio ativado manualmente':'Retorno vazio desativado';
 }
-
 function faRvManual(){
-  const badge=document.getElementById('fa-rv-badge');
-  const desc=document.getElementById('fa-rv-desc');
+  document.getElementById('fa-rv-badge').classList.remove('visible');
   const chk=document.getElementById('fa-retorno-vazio');
-  badge.classList.remove('visible');
-  desc.textContent=chk.checked?'Retorno vazio ativado manualmente':'Retorno vazio desativado';
+  document.getElementById('fa-rv-desc').textContent=chk.checked?'Retorno vazio ativado manualmente':'Retorno vazio desativado';
 }
 
 /* ─── PISO ANTT ──────────────────────────────────── */
@@ -758,12 +779,13 @@ function calcularAllin(){
   const tipo=parseInt(document.getElementById('ai-tipo-carga').value);
   const eixos=parseInt(document.getElementById('ai-eixos').value);
   const retornoVazio=document.getElementById('ai-retorno-vazio').checked;
+  const composicao=document.getElementById('ai-composicao').checked;
 
   if(!allin||allin<=0){alert('Informe o valor all in do frete.');return;}
   if(!aiDist){alert('Selecione origem e destino para calcular a distância primeiro.');return;}
 
-  const piso=getPiso(tipo,eixos,aiDist,retornoVazio);
-  if(!piso){alert('Combinação de tipo de carga e eixos não disponível na Tabela A da ANTT.');return;}
+  const piso=getPiso(tipo,eixos,aiDist,retornoVazio,composicao);
+  if(!piso){alert('Combinação de tipo de carga e eixos não disponível na tabela ANTT.\nVerifique se a composição veicular está correta.');return;}
 
   const icmsValor=allin*(icmsPct/100);
   const freteLiquido=allin-icmsValor-seguro-pedagio;
@@ -779,11 +801,11 @@ function calcularAllin(){
   document.getElementById('ai-m-liq').textContent=fmt(freteLiquido);
 
   // breakdown
-  document.getElementById('ai-b-dist').textContent=aiDist.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' km'+(retornoVazio?' × 2 (retorno vazio) = '+piso.kmEfetivo.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' km':'');
-  document.getElementById('ai-b-ccd-coef').textContent='R$ '+piso.ccd.toFixed(4)+'/km';
+  document.getElementById('ai-b-dist').textContent=aiDist.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' km';
+  document.getElementById('ai-b-ccd-coef').textContent='R$ '+piso.ccd.toFixed(4)+'/km — '+(composicao?'Tabela A (composição)':'Tabela B (tração)');
   document.getElementById('ai-b-ccd').textContent=fmt(piso.pisoCCD);
   document.getElementById('ai-b-cc').textContent=fmt(piso.pisoCC);
-  document.getElementById('ai-b-piso').textContent=fmt(piso.pisoTotal);
+  document.getElementById('ai-b-piso').textContent=fmt(piso.pisoTotal)+(retornoVazio?' (incl. retorno vazio)':'');
   document.getElementById('ai-b-allin').textContent=fmt(allin);
   document.getElementById('ai-b-icms-pct').textContent=icmsPct+'%';
   document.getElementById('ai-b-icms-val').textContent='− '+fmt(icmsValor);
@@ -806,6 +828,7 @@ function calcularAberto(){
   const eixos=parseInt(document.getElementById('fa-eixos').value);
   const icmsPct=parseFloat(document.getElementById('fa-icms').value)||0;
   const retornoVazio=document.getElementById('fa-retorno-vazio').checked;
+  const composicao=document.getElementById('fa-composicao').checked;
 
   let freteInformado=0, tipoLabel='Frete Peso';
   freteInformado=parseFloat(document.getElementById('fa-frete-peso').value)||0;
@@ -813,8 +836,8 @@ function calcularAberto(){
 
   if(!faDist){alert('Selecione origem e destino para calcular a distância primeiro.');return;}
 
-  const piso=getPiso(tipo,eixos,faDist,retornoVazio);
-  if(!piso){alert('Combinação de tipo de carga e eixos não disponível na Tabela A da ANTT.');return;}
+  const piso=getPiso(tipo,eixos,faDist,retornoVazio,composicao);
+  if(!piso){alert('Combinação de tipo de carga e eixos não disponível na tabela ANTT.\nVerifique se a composição veicular está correta.');return;}
 
   const diff=freteInformado-piso.pisoTotal;
   const pct=setVeredicto('fa',diff,piso.pisoTotal);
@@ -829,11 +852,11 @@ function calcularAberto(){
   document.getElementById('fa-m-diff-sub').textContent=(pct>=0?'+':'')+pct.toFixed(1)+'% do piso';
 
   // breakdown
-  document.getElementById('fa-b-dist').textContent=faDist.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' km'+(retornoVazio?' × 2 (retorno vazio) = '+piso.kmEfetivo.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' km':'');
-  document.getElementById('fa-b-ccd-coef').textContent='R$ '+piso.ccd.toFixed(4)+'/km';
+  document.getElementById('fa-b-dist').textContent=faDist.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' km';
+  document.getElementById('fa-b-ccd-coef').textContent='R$ '+piso.ccd.toFixed(4)+'/km — '+(composicao?'Tabela A (composição)':'Tabela B (tração)');
   document.getElementById('fa-b-ccd').textContent=fmt(piso.pisoCCD);
   document.getElementById('fa-b-cc').textContent=fmt(piso.pisoCC);
-  document.getElementById('fa-b-piso').textContent=fmt(piso.pisoTotal);
+  document.getElementById('fa-b-piso').textContent=fmt(piso.pisoTotal)+(retornoVazio?' (incl. retorno vazio 0,92×CCD×km = '+fmt(piso.pisoRetornoVazio)+')':'');
   document.getElementById('fa-b-tipo-label').textContent='Frete Peso';
   document.getElementById('fa-b-frete').textContent=fmt(freteInformado);
   const diffEl=document.getElementById('fa-b-diff');
